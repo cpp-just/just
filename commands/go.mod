@@ -1,3 +1,3 @@
-module example.com/m/v2
+module github.com/LucasCzerny/just/commands
 
 go 1.23.3
