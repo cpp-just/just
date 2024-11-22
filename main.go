@@ -9,16 +9,18 @@ import (
 )
 
 func main() {
-	if (flag.NArg() == 1) {
+	flag.Parse()
+
+	if (flag.NArg() == 0) {
 		printUsage();
 		os.Exit(1)
 	}
 
-	command := flag.Args()[1]
+	command := flag.Args()[0]
 
 	switch (command) {
 	case "install": {
-		install(flag.Args()[1:])
+		commands.Install()
 	}
 	case "update": {
 		// update()
