@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/LucasCzerny/just/commands"
 )
 
 func main() {
