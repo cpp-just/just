@@ -31,6 +31,12 @@ func main() {
 	case "init":
 		commandErr = commands.Init(args)
 
+	case "configure":
+		commandErr = commands.Configure(args)
+
+	case "clean":
+		commandErr = commands.Clean(args)
+
 	default:
 		printUsage()
 		os.Exit(1)
@@ -44,7 +50,7 @@ func main() {
 
 func printUsage() {
 	fmt.Println("Usage:")
-	fmt.Println("just [install, update] [arguments...]")
+	fmt.Println("just [init, install, update] [arguments...]")
 }
 
 func printCommandError(command string, err error) {

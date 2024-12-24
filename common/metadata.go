@@ -12,6 +12,11 @@ type MetaData struct {
 	Path        string
 }
 
+type PackageMetaData struct {
+	RepoName string
+	GitPath  string
+}
+
 func GetMetaData() (MetaData, error) {
 	file, err := os.Open(".just/metadata.json")
 	if err != nil {
@@ -36,6 +41,25 @@ func WriteMetaData(data MetaData) error {
 	file, err := os.Create(".just/metadata.json")
 	if err != nil {
 		return fmt.Errorf("failed to create metadata file (%v)", err)
+	}
+	defer file.Close()
+
+	bytes, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal metadata (%v)", err)
+	}
+
+	if _, err := file.Write(bytes); err != nil {
+		return fmt.Errorf("failed to write to the metadata file (%v)", err)
+	}
+
+	return nil
+}
+
+func WritePackageMetaData(data PackageMetaData, path string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("failed to create package metadata file (%v)", err)
 	}
 	defer file.Close()
 

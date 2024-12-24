@@ -7,18 +7,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-git/go-git/v5"
+
 	"just/common"
 )
 
 func Init(args []string) error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		fmt.Println("Failed to get the cwd.")
-	}
-
-	// Check if it was already initialized
-	justFolderPath := fmt.Sprintf("%s/.just", cwd)
-	_, err = os.Stat(justFolderPath)
+	_, err := os.Stat(".just")
 	if err == nil {
 		return errors.New("just was already initialized")
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -27,9 +22,10 @@ func Init(args []string) error {
 
 	common.PrintLogo()
 
-	metaData := common.MetaData{}
-	scanner := bufio.NewReader(os.Stdin)
-
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get the current working directory (%w)", err)
+	}
 	fmt.Printf("Initializing just in %s. Press enter to continue.\n", cwd)
 
 	if len(args) != 0 {
@@ -38,11 +34,36 @@ func Init(args []string) error {
 
 	fmt.Scanln()
 
+	metaData, err := askMetaData()
+	if err != nil {
+		return fmt.Errorf("failed to ask for the meta data (%w)", err)
+	}
+
+	fmt.Println()
+	fmt.Println("Downloading the starter template...")
+
+	err = downloadStarterTemplate()
+	if err != nil {
+		return fmt.Errorf("failed to download the starter template (%w)", err)
+	}
+
+	err = common.WriteMetaData(metaData)
+	if err != nil {
+		return fmt.Errorf("failed to write the meta data (%w)", err)
+	}
+
+	return nil
+}
+
+func askMetaData() (common.MetaData, error) {
+	metaData := common.MetaData{}
+	scanner := bufio.NewReader(os.Stdin)
+
 	fmt.Println("Whats the name of your project?")
 	fmt.Print("> ")
 
 	metaData.ProjectName, _ = scanner.ReadString('\n')
-	metaData.ProjectName = strings.TrimSpace(metaData.ProjectName)
+	metaData.ProjectName = strings.TrimSpace(strings.ReplaceAll(metaData.Path, "\n", ""))
 
 	fmt.Println()
 
@@ -52,46 +73,26 @@ func Init(args []string) error {
 	// TODO: this doesnt check in PATH lmao
 
 	metaData.Path, _ = scanner.ReadString('\n')
-	metaData.Path = strings.TrimSpace(metaData.Path)
-	_, err = os.Stat(metaData.Path)
+	metaData.Path = strings.TrimSpace(strings.ReplaceAll(metaData.Path, "\n", ""))
+	_, err := os.Stat(metaData.Path)
 	if err == nil {
-		return errors.New("invalid compiler path")
+		return metaData, errors.New("invalid compiler path")
 	} else if !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("failed to check if the compiler path exists (%w)", err)
+		return metaData, fmt.Errorf("failed to check if the compiler path exists (%w)", err)
 	}
 
-	err = os.Mkdir(".just", os.ModePerm)
-	if err != nil {
-		return errors.New("failed to create the .just folder")
-	}
-	err = common.WriteMetaData(metaData)
-	if err != nil {
-		return fmt.Errorf("failed to write the metadata (%w)", err)
-	}
+	return metaData, nil
+}
 
-	fmt.Println()
+func downloadStarterTemplate() error {
+	const githubStarterURL string = "https://github.com/cpp-just/just-folder-template"
 
-	// TODO: cwd?
-
-	_, err = os.Create(".just/buildoptions")
+	_, err := git.PlainClone(".just", false, &git.CloneOptions{
+		URL:      githubStarterURL,
+		Progress: os.Stdout,
+	})
 	if err != nil {
-		return errors.New("failed to create the buildoptions file")
-	}
-
-	_, err = os.Create(".just/linkeroptions")
-	if err != nil {
-		return errors.New("failed to create the linkeroptions file")
-	}
-
-	_, err = os.Create(".just/defines")
-	if err != nil {
-		return errors.New("failed to create the defines file")
-	}
-
-	gitignoreContent := ".just/\nbuild/"
-	err = os.WriteFile(".gitignore", []byte(gitignoreContent), os.ModePerm)
-	if err != nil {
-		return errors.New("failed to create the .gitignore file")
+		return fmt.Errorf("failed to clone the starter template (%w)", err)
 	}
 
 	return nil

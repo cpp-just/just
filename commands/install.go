@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"just/common"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -18,7 +19,7 @@ func Install(basePath string, packages []string) error {
 
 	for _, pkg := range packages {
 		gitPath := fmt.Sprintf("%s%s", basePath, pkg)
-		packagePath := fmt.Sprintf("packages/%s", pkg)
+		packagePath := fmt.Sprintf(".just/packages/%s", pkg)
 
 		_, err := os.Stat(packagePath)
 		if err == nil {
@@ -41,18 +42,14 @@ func Install(basePath string, packages []string) error {
 			return fmt.Errorf("failed to unzip the package (%w)", err)
 		}
 
-		justRepoFilePath := fmt.Sprintf("%s/.justrepo", packagePath)
-		justRepoFile, err := os.Create(justRepoFilePath)
-		if err != nil {
-			os.RemoveAll(packagePath)
-			return errors.New("failed to create the .justrepo file")
-		}
-		defer justRepoFile.Close()
+		metaData := common.PackageMetaData{}
+		metaData.RepoName = pkg
+		metaData.GitPath = gitPath
 
-		_, err = justRepoFile.WriteString(gitPath)
+		justRepoFilePath := fmt.Sprintf("%s/.justrepo", packagePath)
+		err = common.WritePackageMetaData(metaData, justRepoFilePath)
 		if err != nil {
-			os.RemoveAll(packagePath)
-			return errors.New("failed to write to the .justrepo file")
+			return fmt.Errorf("failed to create the .justrepo file (%w)", err)
 		}
 	}
 
@@ -120,7 +117,7 @@ func unzipPackage(packagePath string, tempZipFilename string) error {
 			return fmt.Errorf("failed to create parent directory %s for file %s", parentDirectory, file.Name)
 		}
 
-		outFile, err := os.OpenFile(fullPath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, file.Mode())
+		outFile, err := os.OpenFile(fullPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
 		if err != nil {
 			return fmt.Errorf("failed to create out file %s", fullPath)
 		}
