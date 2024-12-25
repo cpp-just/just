@@ -18,7 +18,7 @@ func Configure(args []string) error {
 		target = "cmake"
 	}
 
-	cmd := exec.Command("cd .just; ./premake5", target, "; cd ..")
+	cmd := exec.Command("cd .just && ./premake5", target, "; cd ..")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to run premake (%w)", err)
 	}
